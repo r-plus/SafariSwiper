@@ -81,11 +81,24 @@ static UIView *leftOverlay, *rightOverlay;
     UIView *pageView = MSHookIvar<UIView *>(self, "_pageView");
     CGPoint translation = [gr translationInView:gr.view];
     SSTabChangeDirection direction = translation.x < 0 ? SSDirectionRight : SSDirectionLeft;
+    CGPoint velocity = [gr velocityInView:gr.view];
     CGRect newFrame = pageView.frame;
     [self setupOverlays];
 
     if (![self.tabController canSwitchTabInDirection:direction]) {
         return;
+    } else if (gr.state == UIGestureRecognizerStateEnded && ABS(velocity.x) > 1000.0) {
+        // Following copied code those who are summarized in function/method is better.
+        gr.enabled = NO;
+        [self.tabController switchTabInDirection:direction];
+        newFrame.origin.x = 0;
+        [UIView animateWithDuration:0.2
+                        animations:^{
+                            pageView.frame = newFrame;
+                        }
+                        completion:^(BOOL finished) {
+                            gr.enabled = YES;
+                       }];
     } else if (gr.state == UIGestureRecognizerStateCancelled ||
             gr.state == UIGestureRecognizerStateEnded ||
             gr.state == UIGestureRecognizerStateFailed) {
